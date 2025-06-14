@@ -1,0 +1,218 @@
+<?php
+// ================================
+// Database connection setup
+// ================================
+$conn = new mysqli('localhost', 'root', '', 'wasabi_kitchen');
+if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
+
+// ================================
+// HTML UI rendering
+// ================================
+if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_METHOD'] == 'GET') {
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Wasabi Kitchen</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/flowbite@2.3.0/dist/flowbite.min.js"></script>
+</head>
+<body class="bg-gray-900 text-white px-[100px]">
+  <h1 class="mt-6 mb-20 text-3xl font-extrabold md:text-5xl lg:text-6xl text-center">
+    <span class="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">Wasabi Kitchen</span>
+  </h1>
+
+  <!-- Add Product Button -->
+  <button data-modal-target="product-modal" data-modal-toggle="product-modal"
+    class="bg-blue-600 text-white px-4 py-2 rounded">
+    Add Product
+  </button>
+
+  <!-- Add Product Modal -->
+  <div id="product-modal" tabindex="-1" aria-hidden="true"
+    class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto h-full bg-black/50 flex justify-center items-center">
+    <div class="relative w-full max-w-md">
+      <div class="bg-white rounded-lg shadow p-6 text-black">
+        <button type="button" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
+          data-modal-hide="product-modal">&times;</button>
+        <h3 class="text-xl font-bold mb-4">Add Product</h3>
+        <form id="addProductForm" class="space-y-3">
+          <input type="text" name="name" placeholder="Product name" required
+            class="w-full border p-2 rounded text-black" />
+          <input type="number" name="price" placeholder="Price" required step="0.01"
+            class="w-full border p-2 rounded text-black" />
+          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Add</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create Order -->
+  <section class="form mb-10" id="CreateOrder">
+    <h2 class="text-xl font-bold mb-4">Create Order</h2>
+    <form>
+      <input type="text" name="customer" placeholder="Customer Name" required class="mb-4 p-2 w-full rounded text-black">
+      <ul class="space-y-2"></ul>
+      <button type="submit" class="bg-green-600 text-white px-6 py-2 mt-4 rounded">Place Order</button>
+    </form>
+  </section>
+
+  <!-- Order Report -->
+  <section id="OrderReport">
+    <h2 class="text-xl font-bold mb-4">Order Report</h2>
+    <table class="min-w-full text-left">
+      <thead class="bg-gray-700">
+        <tr>
+          <th class="px-6 py-3">Customer</th>
+          <th class="px-6 py-3">Products</th>
+          <th class="px-6 py-3">Total</th>
+          <th class="px-6 py-3">Status</th>
+        </tr>
+      </thead>
+      <tbody class="bg-gray-800"></tbody>
+    </table>
+  </section>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const selected = [];
+  const addForm = document.querySelector('#addProductForm');
+  const orderForm = document.querySelector('section.form form');
+  const productUL = document.querySelector('#CreateOrder ul');
+  const orderTbody = document.querySelector('#OrderReport tbody');
+
+  async function loadProducts() {
+    const res = await fetch('api.php?products=1');
+    const list = await res.json();
+    productUL.innerHTML = '';
+    list.forEach(p => {
+      productUL.insertAdjacentHTML('beforeend', `
+        <li class="py-2 border-b flex justify-between">
+          <div><strong>${p.name}</strong> <span class="text-gray-400">BDT ${p.price}</span></div>
+          <button data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" class="btn-select bg-gray-700 text-green-400 px-3 py-1 rounded">+</button>
+        </li>`);
+    });
+    document.querySelectorAll('.btn-select').forEach(btn => btn.onclick = () => {
+      btn.disabled = true;
+      btn.innerText = '-';
+      selected.push({ id: btn.dataset.id, name: btn.dataset.name, price: parseFloat(btn.dataset.price) });
+    });
+  }
+
+  async function loadOrders() {
+    const res = await fetch('api.php?orders=1');
+    const list = await res.json();
+    orderTbody.innerHTML = '';
+    list.forEach(o => {
+      const names = o.food_names.join(', ');
+      const statusBtn = o.delivered == 1
+        ? '<button disabled class="bg-gray-600 text-white px-4 py-1 rounded">DELIVERED</button>'
+        : `<button data-id="${o.id}" class="btn-deliver bg-blue-600 text-white px-4 py-1 rounded">DELIVER</button>`;
+      orderTbody.insertAdjacentHTML('beforeend', `
+        <tr class="border-b">
+          <td class="px-6 py-2">${o.customer_name}</td>
+          <td class="px-6 py-2">${names}</td>
+          <td class="px-6 py-2">BDT ${parseFloat(o.total_price).toFixed(2)}</td>
+          <td class="px-6 py-2">${statusBtn}</td>
+        </tr>`);
+    });
+    document.querySelectorAll('.btn-deliver').forEach(btn => btn.onclick = async () => {
+      await fetch('api.php', {
+        method: 'PUT',
+        body: `order_id=${btn.dataset.id}`
+      });
+      loadOrders();
+    });
+  }
+
+  addForm.onsubmit = async e => {
+    e.preventDefault();
+    const name = addForm.name.value.trim();
+    const price = parseFloat(addForm.price.value);
+    if (!name || isNaN(price)) return;
+    await fetch('api.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ addProduct: 1, name, price })
+    });
+    addForm.reset();
+    document.getElementById('product-modal').classList.add('hidden');
+    loadProducts();
+  };
+
+  orderForm.onsubmit = async e => {
+    e.preventDefault();
+    const customer = orderForm.customer.value.trim();
+    if (!customer || selected.length === 0) return alert("Provide name and at least one product");
+    const total = selected.reduce((acc, item) => acc + item.price, 0);
+    await fetch('api.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ createOrder: 1, customer, foods: selected.map(i => i.name), total })
+    });
+    orderForm.reset();
+    selected.length = 0;
+    loadProducts();
+    loadOrders();
+  };
+
+  loadProducts();
+  loadOrders();
+});
+</script>
+</body>
+</html>
+<?php exit; }
+
+// ================================
+// API Section
+// ================================
+header('Content-Type: application/json');
+$method = $_SERVER['REQUEST_METHOD'];
+
+if ($method == 'GET' && isset($_GET['products'])) {
+  $res = $conn->query("SELECT * FROM products");
+  echo json_encode($res->fetch_all(MYSQLI_ASSOC));
+  exit;
+}
+
+if ($method == 'GET' && isset($_GET['orders'])) {
+  $res = $conn->query("SELECT * FROM orders");
+  $data = [];
+  while ($row = $res->fetch_assoc()) {
+    $row['food_names'] = json_decode($row['food_names']);
+    $row['delivered'] = (int)$row['delivered']; // force to integer
+    $data[] = $row;
+  }
+  echo json_encode($data);
+  exit;
+}
+
+if ($method == 'POST') {
+  $input = json_decode(file_get_contents('php://input'), true);
+  if (isset($input['addProduct'])) {
+    $stmt = $conn->prepare("INSERT INTO products (name, price) VALUES (?, ?)");
+    $stmt->bind_param("sd", $input['name'], $input['price']);
+    $stmt->execute();
+    echo json_encode(['status' => 'success']);
+    exit;
+  }
+  if (isset($input['createOrder'])) {
+    $stmt = $conn->prepare("INSERT INTO orders (customer_name, food_names, total_price) VALUES (?, ?, ?)");
+    $foods = json_encode($input['foods']);
+    $stmt->bind_param("ssd", $input['customer'], $foods, $input['total']);
+    $stmt->execute();
+    echo json_encode(['status' => 'order placed']);
+    exit;
+  }
+}
+
+if ($method == 'PUT') {
+  parse_str(file_get_contents('php://input'), $put);
+  $orderId = intval($put['order_id']);
+  $conn->query("UPDATE orders SET delivered = 1 WHERE id = $orderId");
+  echo json_encode(['status' => 'delivered']);
+  exit;
+}
+?>
