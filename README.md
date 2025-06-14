@@ -23,7 +23,11 @@ CREATE TABLE products (
   price DECIMAL(10,2) NOT NULL
 );
 
-Delete Product: DELETE FROM products WHERE id = ;
+Delete Single Product: DELETE FROM products WHERE id = ;
+
+Delete All Products: DELETE FROM products;
+
+Sirial Reorganize: TRUNCATE TABLE products;
 
 =====================================
 
@@ -37,4 +41,8 @@ CREATE TABLE orders (
   delivered BOOLEAN NOT NULL DEFAULT false
 );
 
-Delete Product: DELETE FROM orders WHERE id = ;
+Delete Single Product: DELETE FROM orders WHERE id = ;
+
+Delete All Products: DELETE FROM orders;
+
+Sirial Reorganize: TRUNCATE TABLE orders;
