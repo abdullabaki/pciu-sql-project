@@ -1,0 +1,13 @@
+CREATE TABLE products (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  price DECIMAL(10,2) NOT NULL
+);
+
+CREATE TABLE orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  customer_name VARCHAR(100) NOT NULL,
+  food_names JSON NOT NULL,
+  total_price DECIMAL(10,2) NOT NULL,
+  delivered BOOLEAN NOT NULL DEFAULT false
+);
