@@ -16,6 +16,7 @@ CREATE TABLE products (
   name VARCHAR(100) NOT NULL,
   price DECIMAL(10,2) NOT NULL
 );
+
 Delete Product: DELETE FROM products WHERE id = ;
 
 
@@ -27,4 +28,5 @@ CREATE TABLE orders (
   total_price DECIMAL(10,2) NOT NULL,
   delivered BOOLEAN NOT NULL DEFAULT false
 );
+
 Delete Product: DELETE FROM orders WHERE id = ;
