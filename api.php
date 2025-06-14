@@ -24,15 +24,15 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
 
   <!-- Add Product Button -->
   <div class="text-right mb-8">
-    <button onclick="toggleModal(true)" class="bg-blue-600 text-white px-4 py-2 rounded">
-    Add Product
+    <button onclick="checkPermission()" class="bg-blue-600 text-white px-4 py-2 rounded">
+      Add Product
     </button>
   </div>
 
-  <!-- Add Product Modal (no backdrop) -->
-  <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
-    <div class="relative bg-white text-black p-6 rounded-lg w-full max-w-md shadow-xl">
-      <button type="button" class="absolute top-2 right-2 text-gray-500 hover:text-black" onclick="toggleModal(false)">&times;</button>
+  <!-- Add Product Modal -->
+  <div id="product-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow p-6 text-black w-full max-w-md relative">
+      <button type="button" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onclick="closeModal()">&times;</button>
       <h3 class="text-xl font-bold mb-4">Add Product</h3>
       <form id="addProductForm" class="space-y-3">
         <input type="text" name="name" placeholder="Product name" required class="w-full border p-2 rounded text-black" />
@@ -42,7 +42,7 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
     </div>
   </div>
 
-<div class="lg:grid lg:grid-cols-1 lg:grid-cols-3 gap-8">
+  <div class="lg:grid lg:grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Create Order -->
   <section class="form mb-10" id="CreateOrder">
     <h2 class="text-xl font-bold mb-4">Create Order</h2>
@@ -54,7 +54,7 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
   </section>
 
   <!-- Order Report -->
-  <section id="OrderReport" class="mb-10 col-span-2">
+  <section id="OrderReport" class="col-span-2 mb-10">
     <h2 class="text-xl font-bold mb-4">Order Report</h2>
     <table class="min-w-full text-left">
       <thead class="bg-gray-700">
@@ -68,20 +68,9 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
       <tbody class="bg-gray-800"></tbody>
     </table>
   </section>
-</div>
+  </div>
 
 <script>
-function toggleModal(show = true) {
-  const modal = document.getElementById("product-modal");
-  if (show) {
-    modal.classList.remove("hidden");
-    modal.classList.add("flex");
-  } else {
-    modal.classList.add("hidden");
-    modal.classList.remove("flex");
-  }
-}
-
 document.addEventListener("DOMContentLoaded", () => {
   const selected = [];
   const addForm = document.querySelector('#addProductForm');
@@ -144,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
       body: JSON.stringify({ addProduct: 1, name, price })
     });
     addForm.reset();
-    toggleModal(false);
+    closeModal();
     loadProducts();
   };
 
@@ -167,6 +156,27 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProducts();
   loadOrders();
 });
+
+function checkPermission() {
+  const pass = prompt("Enter admin password:");
+  if (!pass) return;
+
+  fetch('api.php?checkPassword=1', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pass })
+  }).then(res => res.json()).then(result => {
+    if (result.success) {
+      document.getElementById('product-modal').classList.remove('hidden');
+    } else {
+      alert("Incorrect password!");
+    }
+  });
+}
+
+function closeModal() {
+  document.getElementById('product-modal').classList.add('hidden');
+}
 </script>
 </body>
 </html>
@@ -196,6 +206,14 @@ if ($method == 'GET' && isset($_GET['orders'])) {
   exit;
 }
 
+if ($method == 'POST' && isset($_GET['checkPassword'])) {
+  $input = json_decode(file_get_contents('php://input'), true);
+  $password = $conn->real_escape_string($input['password']);
+  $res = $conn->query("SELECT * FROM admin_passwords WHERE password = '$password'");
+  echo json_encode(['success' => $res->num_rows > 0]);
+  exit;
+}
+
 if ($method == 'POST') {
   $input = json_decode(file_get_contents('php://input'), true);
   if (isset($input['addProduct'])) {
@@ -222,3 +240,4 @@ if ($method == 'PUT') {
   echo json_encode(['status' => 'delivered']);
   exit;
 }
+?>
