@@ -1,16 +1,22 @@
 Database Name: wasabi_kitchen
 
-Admin Access:
+=====================================
+
+Admin Access:-
+
 CREATE TABLE admin_passwords (
   id INT AUTO_INCREMENT PRIMARY KEY,
   password VARCHAR(255) NOT NULL
 );
 
-Insert Password:
+Insert Password:-
+
 INSERT INTO admin_passwords (password) VALUES ('112233');
 
+=====================================
 
-Create Product:
+Create Product:-
+
 CREATE TABLE products (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
@@ -19,8 +25,10 @@ CREATE TABLE products (
 
 Delete Product: DELETE FROM products WHERE id = ;
 
+=====================================
 
-Create Order:
+Create Order:-
+
 CREATE TABLE orders (
   id INT AUTO_INCREMENT PRIMARY KEY,
   customer_name VARCHAR(100) NOT NULL,
