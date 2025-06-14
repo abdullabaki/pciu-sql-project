@@ -16,7 +16,6 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
   <meta charset="UTF-8">
   <title>Wasabi Kitchen</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/flowbite@2.3.0/dist/flowbite.min.js"></script>
 </head>
 <body class="bg-gray-900 text-white px-[100px]">
   <h1 class="mt-6 mb-20 text-3xl font-extrabold md:text-5xl lg:text-6xl text-center">
@@ -24,31 +23,27 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
   </h1>
 
   <!-- Add Product Button -->
-  <button data-modal-target="product-modal" data-modal-toggle="product-modal"
-    class="bg-blue-600 text-white px-4 py-2 rounded">
+  <div class="text-right mb-8">
+    <button onclick="toggleModal(true)" class="bg-blue-600 text-white px-4 py-2 rounded">
     Add Product
-  </button>
+    </button>
+  </div>
 
-  <!-- Add Product Modal -->
-  <div id="product-modal" tabindex="-1" aria-hidden="true"
-    class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto h-full bg-black/50 flex justify-center items-center">
-    <div class="relative w-full max-w-md">
-      <div class="bg-white rounded-lg shadow p-6 text-black">
-        <button type="button" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600"
-          data-modal-hide="product-modal">&times;</button>
-        <h3 class="text-xl font-bold mb-4">Add Product</h3>
-        <form id="addProductForm" class="space-y-3">
-          <input type="text" name="name" placeholder="Product name" required
-            class="w-full border p-2 rounded text-black" />
-          <input type="number" name="price" placeholder="Price" required step="0.01"
-            class="w-full border p-2 rounded text-black" />
-          <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Add</button>
-        </form>
-      </div>
+  <!-- Add Product Modal (no backdrop) -->
+  <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="relative bg-white text-black p-6 rounded-lg w-full max-w-md shadow-xl">
+      <button type="button" class="absolute top-2 right-2 text-gray-500 hover:text-black" onclick="toggleModal(false)">&times;</button>
+      <h3 class="text-xl font-bold mb-4">Add Product</h3>
+      <form id="addProductForm" class="space-y-3">
+        <input type="text" name="name" placeholder="Product name" required class="w-full border p-2 rounded text-black" />
+        <input type="number" name="price" placeholder="Price" required step="0.01" class="w-full border p-2 rounded text-black" />
+        <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded">Add</button>
+      </form>
     </div>
   </div>
 
-  <!-- Create Order -->
+<div class="lg:grid lg:grid-cols-1 lg:grid-cols-3 gap-8">
+    <!-- Create Order -->
   <section class="form mb-10" id="CreateOrder">
     <h2 class="text-xl font-bold mb-4">Create Order</h2>
     <form>
@@ -59,7 +54,7 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
   </section>
 
   <!-- Order Report -->
-  <section id="OrderReport">
+  <section id="OrderReport" class="mb-10 col-span-2">
     <h2 class="text-xl font-bold mb-4">Order Report</h2>
     <table class="min-w-full text-left">
       <thead class="bg-gray-700">
@@ -73,8 +68,20 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
       <tbody class="bg-gray-800"></tbody>
     </table>
   </section>
+</div>
 
 <script>
+function toggleModal(show = true) {
+  const modal = document.getElementById("product-modal");
+  if (show) {
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+  } else {
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const selected = [];
   const addForm = document.querySelector('#addProductForm');
@@ -137,7 +144,7 @@ document.addEventListener("DOMContentLoaded", () => {
       body: JSON.stringify({ addProduct: 1, name, price })
     });
     addForm.reset();
-    document.getElementById('product-modal').classList.add('hidden');
+    toggleModal(false);
     loadProducts();
   };
 
@@ -182,7 +189,7 @@ if ($method == 'GET' && isset($_GET['orders'])) {
   $data = [];
   while ($row = $res->fetch_assoc()) {
     $row['food_names'] = json_decode($row['food_names']);
-    $row['delivered'] = (int)$row['delivered']; // force to integer
+    $row['delivered'] = (int)$row['delivered'];
     $data[] = $row;
   }
   echo json_encode($data);
@@ -215,4 +222,3 @@ if ($method == 'PUT') {
   echo json_encode(['status' => 'delivered']);
   exit;
 }
-?>
