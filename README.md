@@ -1,5 +1,7 @@
 Database Name: wasabi_kitchen
 
+Path: http://localhost/database_project/api.php
+
 =====================================
 
 Admin Access:-
