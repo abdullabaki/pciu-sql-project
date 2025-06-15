@@ -6,9 +6,9 @@ $conn = new mysqli('localhost', 'root', '', 'wasabi_kitchen');
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
 // ==========================================
-// HTML UI Section
+// UI SECTION (HTML + JavaScript)
 // ==========================================
-if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_METHOD'] == 'GET') {
+if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_METHOD'] === 'GET') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -26,7 +26,6 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
     <button onclick="checkPermission()" class="bg-blue-600 text-white px-4 py-2 rounded">Add Product</button>
   </div>
 
-  <!-- Modal -->
   <div id="product-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow p-6 text-black w-full max-w-md relative">
       <button type="button" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onclick="closeModal()">&times;</button>
@@ -40,17 +39,15 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
   </div>
 
   <div class="lg:grid lg:grid-cols-1 lg:grid-cols-3 gap-8">
-    <!-- Create Order -->
     <section class="form mb-10" id="CreateOrder">
       <h2 class="text-xl font-bold mb-4">Create Order</h2>
-      <form>
+      <form id="orderForm">
         <input type="text" name="customer" placeholder="Customer Name" required class="mb-4 p-2 w-full rounded text-black">
-        <ul class="space-y-2"></ul>
+        <ul class="space-y-2" id="productList"></ul>
         <button type="submit" class="bg-blue-600 text-white px-6 py-2 mt-4 rounded w-full">Place Order</button>
       </form>
     </section>
 
-    <!-- Order Report -->
     <section id="OrderReport" class="col-span-2 mb-10">
       <h2 class="text-xl font-bold mb-4">Order Report</h2>
       <table class="min-w-full text-left">
@@ -62,7 +59,7 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
             <th class="px-6 py-3">Status</th>
           </tr>
         </thead>
-        <tbody class="bg-gray-800"></tbody>
+        <tbody class="bg-gray-800" id="orderBody"></tbody>
       </table>
     </section>
   </div>
@@ -70,21 +67,23 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const selected = [];
-  const addForm = document.querySelector('#addProductForm');
-  const orderForm = document.querySelector('section.form form');
-  const productUL = document.querySelector('#CreateOrder ul');
-  const orderTbody = document.querySelector('#OrderReport tbody');
+  const addForm = document.getElementById('addProductForm');
+  const orderForm = document.getElementById('orderForm');
+  const productUL = document.getElementById('productList');
+  const orderTbody = document.getElementById('orderBody');
 
   async function loadProducts() {
     const res = await fetch('api.php?products=1');
-    const list = await res.json();
+    const products = await res.json();
     productUL.innerHTML = '';
-    list.forEach(p => {
-      productUL.insertAdjacentHTML('beforeend', `
-        <li class="py-2 border-b flex justify-between items-center">
-          <div><strong>${p.name}</strong> <span class="text-gray-400">BDT ${p.price}</span></div>
-          <button data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" class="btn-select bg-blue-600 text-white px-3 py-1 rounded">+</button>
-        </li>`);
+    products.forEach(p => {
+      const item = document.createElement('li');
+      item.className = 'py-2 border-b flex justify-between items-center';
+      item.innerHTML = `
+        <div><strong>${p.name}</strong> <span class="text-gray-400">BDT ${p.price}</span></div>
+        <button data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" class="btn-select bg-blue-600 text-white px-3 py-1 rounded">+</button>
+      `;
+      productUL.appendChild(item);
     });
 
     document.querySelectorAll('.btn-select').forEach(btn => {
@@ -106,11 +105,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function loadOrders() {
     const res = await fetch('api.php?orders=1');
-    const list = await res.json();
+    const orders = await res.json();
     orderTbody.innerHTML = '';
-    list.forEach(o => {
+    orders.forEach(o => {
       const names = o.food_names.join(', ');
-      const statusBtn = o.delivered == 1
+      const statusBtn = o.delivered
         ? '<button disabled class="bg-gray-600 text-white px-4 py-1 rounded">DELIVERED</button>'
         : `<button data-id="${o.id}" class="btn-deliver bg-blue-600 text-white px-4 py-1 rounded">DELIVER</button>`;
       const deleteBtn = `<button data-id="${o.id}" class="btn-delete bg-red-600 text-white px-4 py-1 rounded ml-2">DELETE</button>`;
@@ -121,24 +120,29 @@ document.addEventListener("DOMContentLoaded", () => {
           <td class="px-6 py-2">${names}</td>
           <td class="px-6 py-2">BDT ${parseFloat(o.total_price).toFixed(2)}</td>
           <td class="px-6 py-2 flex">${statusBtn} ${deleteBtn}</td>
-        </tr>`);
+        </tr>
+      `);
     });
 
-    document.querySelectorAll('.btn-deliver').forEach(btn => btn.onclick = async () => {
-      await fetch('api.php', {
-        method: 'PUT',
-        body: `order_id=${btn.dataset.id}`
-      });
-      loadOrders();
+    document.querySelectorAll('.btn-deliver').forEach(btn => {
+      btn.onclick = async () => {
+        await fetch('api.php', {
+          method: 'PUT',
+          body: `order_id=${btn.dataset.id}`
+        });
+        loadOrders();
+      };
     });
 
-    document.querySelectorAll('.btn-delete').forEach(btn => btn.onclick = async () => {
-      if (!confirm("Are you sure you want to delete this order?")) return;
-      await fetch('api.php', {
-        method: 'DELETE',
-        body: `order_id=${btn.dataset.id}`
-      });
-      loadOrders();
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+      btn.onclick = async () => {
+        if (!confirm("Are you sure you want to delete this order?")) return;
+        await fetch('api.php', {
+          method: 'DELETE',
+          body: `order_id=${btn.dataset.id}`
+        });
+        loadOrders();
+      };
     });
   }
 
@@ -161,6 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     const customer = orderForm.customer.value.trim();
     if (!customer || selected.length === 0) return alert("Provide name and at least one product");
+
     const total = selected.reduce((acc, item) => acc + item.price, 0);
     await fetch('api.php', {
       method: 'POST',
@@ -208,13 +213,13 @@ function closeModal() {
 header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 
-if ($method == 'GET' && isset($_GET['products'])) {
+if ($method === 'GET' && isset($_GET['products'])) {
   $res = $conn->query("SELECT * FROM products");
   echo json_encode($res->fetch_all(MYSQLI_ASSOC));
   exit;
 }
 
-if ($method == 'GET' && isset($_GET['orders'])) {
+if ($method === 'GET' && isset($_GET['orders'])) {
   $res = $conn->query("SELECT * FROM orders");
   $data = [];
   while ($row = $res->fetch_assoc()) {
@@ -226,7 +231,7 @@ if ($method == 'GET' && isset($_GET['orders'])) {
   exit;
 }
 
-if ($method == 'POST' && isset($_GET['checkPassword'])) {
+if ($method === 'POST' && isset($_GET['checkPassword'])) {
   $input = json_decode(file_get_contents('php://input'), true);
   $password = $conn->real_escape_string($input['password']);
   $res = $conn->query("SELECT * FROM admin_passwords WHERE password = '$password'");
@@ -234,7 +239,7 @@ if ($method == 'POST' && isset($_GET['checkPassword'])) {
   exit;
 }
 
-if ($method == 'POST') {
+if ($method === 'POST') {
   $input = json_decode(file_get_contents('php://input'), true);
   if (isset($input['addProduct'])) {
     $stmt = $conn->prepare("INSERT INTO products (name, price) VALUES (?, ?)");
@@ -253,7 +258,7 @@ if ($method == 'POST') {
   }
 }
 
-if ($method == 'PUT') {
+if ($method === 'PUT') {
   parse_str(file_get_contents('php://input'), $put);
   $orderId = intval($put['order_id']);
   $conn->query("UPDATE orders SET delivered = 1 WHERE id = $orderId");
@@ -261,7 +266,7 @@ if ($method == 'PUT') {
   exit;
 }
 
-if ($method == 'DELETE') {
+if ($method === 'DELETE') {
   parse_str(file_get_contents('php://input'), $delete);
   $orderId = intval($delete['order_id']);
   $conn->query("DELETE FROM orders WHERE id = $orderId");
