@@ -1,13 +1,13 @@
 <?php
-// ================================
-// Database connection setup
-// ================================
+// ==========================================
+// DB Connection
+// ==========================================
 $conn = new mysqli('localhost', 'root', '', 'wasabi_kitchen');
 if ($conn->connect_error) die("Connection failed: " . $conn->connect_error);
 
-// ================================
-// HTML UI rendering
-// ================================
+// ==========================================
+// HTML UI Section
+// ==========================================
 if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_METHOD'] == 'GET') {
 ?>
 <!DOCTYPE html>
@@ -18,18 +18,15 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-900 text-white px-[100px]">
-  <h1 class="mt-6 mb-20 text-3xl font-extrabold md:text-5xl lg:text-6xl text-center">
+  <h1 class="mt-20 mb-16 text-3xl font-extrabold md:text-5xl lg:text-6xl text-center">
     <span class="text-transparent bg-clip-text bg-gradient-to-r to-emerald-600 from-sky-400">Wasabi Kitchen</span>
   </h1>
 
-  <!-- Add Product Button -->
   <div class="text-right mb-8">
-    <button onclick="checkPermission()" class="bg-blue-600 text-white px-4 py-2 rounded">
-      Add Product
-    </button>
+    <button onclick="checkPermission()" class="bg-blue-600 text-white px-4 py-2 rounded">Add Product</button>
   </div>
 
-  <!-- Add Product Modal -->
+  <!-- Modal -->
   <div id="product-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center">
     <div class="bg-white rounded-lg shadow p-6 text-black w-full max-w-md relative">
       <button type="button" class="absolute top-2 right-2 text-gray-400 hover:text-gray-600" onclick="closeModal()">&times;</button>
@@ -44,30 +41,30 @@ if (!isset($_GET['products']) && !isset($_GET['orders']) && $_SERVER['REQUEST_ME
 
   <div class="lg:grid lg:grid-cols-1 lg:grid-cols-3 gap-8">
     <!-- Create Order -->
-  <section class="form mb-10" id="CreateOrder">
-    <h2 class="text-xl font-bold mb-4">Create Order</h2>
-    <form>
-      <input type="text" name="customer" placeholder="Customer Name" required class="mb-4 p-2 w-full rounded text-black">
-      <ul class="space-y-2"></ul>
-      <button type="submit" class="bg-green-600 text-white px-6 py-2 mt-4 rounded">Place Order</button>
-    </form>
-  </section>
+    <section class="form mb-10" id="CreateOrder">
+      <h2 class="text-xl font-bold mb-4">Create Order</h2>
+      <form>
+        <input type="text" name="customer" placeholder="Customer Name" required class="mb-4 p-2 w-full rounded text-black">
+        <ul class="space-y-2"></ul>
+        <button type="submit" class="bg-blue-600 text-white px-6 py-2 mt-4 rounded w-full">Place Order</button>
+      </form>
+    </section>
 
-  <!-- Order Report -->
-  <section id="OrderReport" class="col-span-2 mb-10">
-    <h2 class="text-xl font-bold mb-4">Order Report</h2>
-    <table class="min-w-full text-left">
-      <thead class="bg-gray-700">
-        <tr>
-          <th class="px-6 py-3">Customer</th>
-          <th class="px-6 py-3">Products</th>
-          <th class="px-6 py-3">Total</th>
-          <th class="px-6 py-3">Status</th>
-        </tr>
-      </thead>
-      <tbody class="bg-gray-800"></tbody>
-    </table>
-  </section>
+    <!-- Order Report -->
+    <section id="OrderReport" class="col-span-2 mb-10">
+      <h2 class="text-xl font-bold mb-4">Order Report</h2>
+      <table class="min-w-full text-left">
+        <thead class="bg-gray-700">
+          <tr>
+            <th class="px-6 py-3">Customer</th>
+            <th class="px-6 py-3">Products</th>
+            <th class="px-6 py-3">Total</th>
+            <th class="px-6 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody class="bg-gray-800"></tbody>
+      </table>
+    </section>
   </div>
 
 <script>
@@ -84,15 +81,26 @@ document.addEventListener("DOMContentLoaded", () => {
     productUL.innerHTML = '';
     list.forEach(p => {
       productUL.insertAdjacentHTML('beforeend', `
-        <li class="py-2 border-b flex justify-between">
+        <li class="py-2 border-b flex justify-between items-center">
           <div><strong>${p.name}</strong> <span class="text-gray-400">BDT ${p.price}</span></div>
-          <button data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" class="btn-select bg-gray-700 text-green-400 px-3 py-1 rounded">+</button>
+          <button data-id="${p.id}" data-name="${p.name}" data-price="${p.price}" class="btn-select bg-blue-600 text-white px-3 py-1 rounded">+</button>
         </li>`);
     });
-    document.querySelectorAll('.btn-select').forEach(btn => btn.onclick = () => {
-      btn.disabled = true;
-      btn.innerText = '-';
-      selected.push({ id: btn.dataset.id, name: btn.dataset.name, price: parseFloat(btn.dataset.price) });
+
+    document.querySelectorAll('.btn-select').forEach(btn => {
+      btn.onclick = () => {
+        const id = btn.dataset.id;
+        const index = selected.findIndex(item => item.id === id);
+        if (index === -1) {
+          selected.push({ id, name: btn.dataset.name, price: parseFloat(btn.dataset.price) });
+          btn.textContent = '-';
+          btn.classList.replace('bg-blue-600', 'bg-red-600');
+        } else {
+          selected.splice(index, 1);
+          btn.textContent = '+';
+          btn.classList.replace('bg-red-600', 'bg-blue-600');
+        }
+      };
     });
   }
 
@@ -105,17 +113,29 @@ document.addEventListener("DOMContentLoaded", () => {
       const statusBtn = o.delivered == 1
         ? '<button disabled class="bg-gray-600 text-white px-4 py-1 rounded">DELIVERED</button>'
         : `<button data-id="${o.id}" class="btn-deliver bg-blue-600 text-white px-4 py-1 rounded">DELIVER</button>`;
+      const deleteBtn = `<button data-id="${o.id}" class="btn-delete bg-red-600 text-white px-4 py-1 rounded ml-2">DELETE</button>`;
+
       orderTbody.insertAdjacentHTML('beforeend', `
         <tr class="border-b">
           <td class="px-6 py-2">${o.customer_name}</td>
           <td class="px-6 py-2">${names}</td>
           <td class="px-6 py-2">BDT ${parseFloat(o.total_price).toFixed(2)}</td>
-          <td class="px-6 py-2">${statusBtn}</td>
+          <td class="px-6 py-2 flex">${statusBtn} ${deleteBtn}</td>
         </tr>`);
     });
+
     document.querySelectorAll('.btn-deliver').forEach(btn => btn.onclick = async () => {
       await fetch('api.php', {
         method: 'PUT',
+        body: `order_id=${btn.dataset.id}`
+      });
+      loadOrders();
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(btn => btn.onclick = async () => {
+      if (!confirm("Are you sure you want to delete this order?")) return;
+      await fetch('api.php', {
+        method: 'DELETE',
         body: `order_id=${btn.dataset.id}`
       });
       loadOrders();
@@ -182,9 +202,9 @@ function closeModal() {
 </html>
 <?php exit; }
 
-// ================================
-// API Section
-// ================================
+// ==========================================
+// API SECTION
+// ==========================================
 header('Content-Type: application/json');
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -238,6 +258,14 @@ if ($method == 'PUT') {
   $orderId = intval($put['order_id']);
   $conn->query("UPDATE orders SET delivered = 1 WHERE id = $orderId");
   echo json_encode(['status' => 'delivered']);
+  exit;
+}
+
+if ($method == 'DELETE') {
+  parse_str(file_get_contents('php://input'), $delete);
+  $orderId = intval($delete['order_id']);
+  $conn->query("DELETE FROM orders WHERE id = $orderId");
+  echo json_encode(['status' => 'deleted']);
   exit;
 }
 ?>
