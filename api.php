@@ -72,6 +72,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const productUL = document.getElementById('productList');
   const orderTbody = document.getElementById('orderBody');
 
+  function checkAdminPassword(callback) {
+    const pass = prompt("Enter admin password:");
+    if (!pass) return;
+
+    fetch('api.php?checkPassword=1', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pass })
+    }).then(res => res.json()).then(result => {
+      if (result.success) {
+        callback();
+      } else {
+        alert("Incorrect password!");
+      }
+    });
+  }
+
   async function loadProducts() {
     const res = await fetch('api.php?products=1');
     const products = await res.json();
@@ -125,23 +142,27 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.querySelectorAll('.btn-deliver').forEach(btn => {
-      btn.onclick = async () => {
-        await fetch('api.php', {
-          method: 'PUT',
-          body: `order_id=${btn.dataset.id}`
+      btn.onclick = () => {
+        checkAdminPassword(async () => {
+          await fetch('api.php', {
+            method: 'PUT',
+            body: `order_id=${btn.dataset.id}`
+          });
+          loadOrders();
         });
-        loadOrders();
       };
     });
 
     document.querySelectorAll('.btn-delete').forEach(btn => {
-      btn.onclick = async () => {
+      btn.onclick = () => {
         if (!confirm("Are you sure you want to delete this order?")) return;
-        await fetch('api.php', {
-          method: 'DELETE',
-          body: `order_id=${btn.dataset.id}`
+        checkAdminPassword(async () => {
+          await fetch('api.php', {
+            method: 'DELETE',
+            body: `order_id=${btn.dataset.id}`
+          });
+          loadOrders();
         });
-        loadOrders();
       };
     });
   }
